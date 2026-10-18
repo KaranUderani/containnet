@@ -1,0 +1,8 @@
+measure,spearman_with_simulated_spread
+strength,0.986
+bridge_score,0.946
+eigenvector,0.927
+contacts,0.896
+k_core,0.828
+betweenness,0.711
+participation,-0.208

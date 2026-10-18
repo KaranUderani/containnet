@@ -1,0 +1,5 @@
+method,communities,largest,avg_size,people_covered,people_in_2plus,modularity,within_group_contact,nmi_vs_roles,runtime_s
+Louvain (full graph),6,19,12.5,75,0,0.368,0.614,0.28,0.307
+Girvan-Newman (backbone),6,31,12.5,75,0,0.437,0.656,0.278,0.9664
+CPM k=3 (full graph),1,75,75.0,75,0,,1.0,,1.8427
+CPM k=3 (backbone),5,52,16.2,72,9,,0.79,,0.0021
