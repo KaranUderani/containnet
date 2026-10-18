@@ -20,8 +20,7 @@ st.set_page_config(page_title="ContainNet", page_icon="🏥", layout="wide", ini
 theme.inject()
 
 PLAN_KEYS = ["bridge_score", "degree", "betweenness", "eigenvector", "community_degree", "cpm_bridge"]
-NAV = ["Plan", "Replay", "Groups", "Evidence", "About"]
-
+NAV = ["Plan", "Replay", "Groups", "Evidence", "Dataset", "About"]
 
 # ------------------------------------------------------------------ cached computation
 @st.cache_resource(show_spinner=False)
@@ -70,6 +69,22 @@ def get_method_table(backbone_m, k):
     table, _ = cm.compare_methods(g, ctx.h, 10, k)
     return table
 
+@st.cache_data(show_spinner=False)
+def get_raw_tables():
+    import zipfile
+
+    from containnet.config import ZIP_PATH
+
+    out = {}
+    with zipfile.ZipFile(ZIP_PATH) as z:
+        for name in z.namelist():
+            low = name.lower()
+            if low.endswith("edges.csv") or low.endswith("nodes.csv"):
+                with z.open(name) as fh:
+                    df = pd.read_csv(fh)
+                df.columns = [str(c).lstrip("#").strip() for c in df.columns]
+                out["edges" if "edges" in low else "nodes"] = df
+    return out
 
 def read_csv(name):
     p = RESULTS_DIR / name
@@ -336,6 +351,38 @@ elif nav == "Evidence":
         "- Overlapping membership alone is a weak signal. People in several groups are often patients with few contacts overall; "
         "the bridge score works because it also weighs how much contact a person has."
     )
+
+    
+elif nav == "Dataset":
+    raw = get_raw_tables()
+    events = raw["edges"]
+    st.subheader("The dataset")
+    st.markdown(
+        f"**SocioPatterns Hospital Ward contact network** (Vanhems et al., PLoS ONE 2013), recorded in a hospital in Lyon, "
+        f"France, in December 2010. {n_people} people (46 health-care workers and 29 patients) wore badges that logged "
+        f"face-to-face proximity for about four days. That gave **{len(events):,} contacts**, each a 20-second interval "
+        f"between two people. We add up each pair's contacts into one network of **{ctx.g.number_of_edges():,} linked pairs**, "
+        "where a stronger link means more time together. The data records who met whom, not who got infected."
+    )
+    view = st.radio("Table", [f"People ({n_people})", f"Contact pairs ({ctx.g.number_of_edges():,})",
+                              f"Raw contact events ({len(events):,})"], horizontal=True, key="dview")
+    if view.startswith("People"):
+        t = ctx.table.copy()
+        t["node"] = t["node"].astype(int)
+        t = t.sort_values("node")
+        df = pd.DataFrame({"Person": t.node, "Badge id": t.person_id, "Role": t.role.map(ROLE_NAMES),
+                           "Contacts": t.contacts, "Contact intervals": t.strength})
+        fname = "people.csv"
+    elif view.startswith("Contact pairs"):
+        df = pd.DataFrame([{"Person A": u, "Person B": v, "Contact intervals": d["weight"], "Seconds together": d["weight"] * 20}
+                           for u, v, d in ctx.g.edges(data=True)]).sort_values("Contact intervals", ascending=False)
+        fname = "contact_pairs.csv"
+    else:
+        df = events.rename(columns={"source": "Person A", "target": "Person B", "time": "Time (seconds since start)"})
+        fname = "raw_contact_events.csv"
+    st.dataframe(df, hide_index=True, width="stretch", height=520)
+    st.download_button("Download this table (CSV)", df.to_csv(index=False), fname, "text/csv")
+    st.caption("Source: networks.skewed.de/net/sp_hospital. One contact interval is 20 seconds, so 'Contact intervals' of 3 means one minute together.")
 
 # ================================================================== ABOUT
 else:
