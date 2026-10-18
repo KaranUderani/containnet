@@ -7,7 +7,7 @@ ContainNet detects the tight groups in the ward (Louvain, Girvan-Newman, Clique 
 (degree, betweenness, eigenvector, bridge score), simulates thousands of outbreaks (Independent Cascade, Monte Carlo)
 and measures how much each protection plan shrinks the outbreak.
 
-**Live app:** _add your Streamlit URL here after deploying_
+**Live app:** https://containnet.streamlit.app/
 
 ## Headline results
 
